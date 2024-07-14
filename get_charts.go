@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -25,16 +26,64 @@ type FAAChart struct {
 
 type FAAChartResponse map[string][]FAAChart
 
+type AviaPlannerAirportResponse struct {
+	Res    int      `json:"res"`
+	Err    int      `json:"err"`
+	Coords []string `json:"coords"`
+	HTML   string   `json:"html"`
+}
+
+// fetch all FAA charts for an airport from aviationapi
 func getFAA(icao string) []FAAChart {
 	resp, err := http.Get(fmt.Sprintf("https://api.aviationapi.com/v1/charts?apt=%s", icao))
 	if err != nil {
-		panic("No response from API, aborting...")
+		panic(err)
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	var result FAAChartResponse
 	if err := json.Unmarshal(body, &result); err != nil {
-		panic("Unexpected format returned by API, aborting...")
+		panic(err)
 	}
 	return result[strings.ToUpper(icao)]
+}
+
+// fetch all LIDO charts for an airport from AviaPlanner
+// IMPORTANT: aviaplanner does not have a public api so this method uses internal endpoints and scrapes the returned data, these endpoints may change in the future causing this to not work as expected
+func getLIDO(icao string) map[string]string {
+	data := url.Values{}
+	data.Set("icao", icao)
+
+	req, err := http.NewRequest(http.MethodPost, "https://web.aviaplanner.com/ajax/?type=port-info", strings.NewReader(data.Encode()))
+	if err != nil {
+		panic(err)
+	}
+	req.AddCookie(&http.Cookie{
+		Name:  "token",
+		Value: aviaToken,
+		Path:  "/",
+	})
+	req.AddCookie(&http.Cookie{
+		Name:  "pid",
+		Value: aviaPid,
+		Path:  "/",
+	})
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0")
+	req.Header.Add("Priority", "u=0")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	var result AviaPlannerAirportResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		panic(err)
+	}
+	// TODO: scrape the html response and return the chart names mapped to image urls
+	return map[string]string{}
 }

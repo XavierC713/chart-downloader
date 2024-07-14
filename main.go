@@ -14,6 +14,10 @@ var (
 	path   string
 	source ChartSource
 
+	// aviaplanner specific
+	aviaToken string
+	aviaPid   string
+
 	// globals
 	reader *bufio.Reader
 )
@@ -30,6 +34,8 @@ func main() {
 			fmt.Printf("\nDownloading %s\n", chart.ChartName)
 			downloadChart(chart.PdfPath, fmt.Sprintf("%s - %s.pdf", chart.IcaoIdent, chart.ChartName))
 		}
+	case SOURCE_AVIAPLANNER:
+		getLIDO(icao)
 	}
 }
 
@@ -44,6 +50,13 @@ func userConfig() {
 		source = SOURCE_FAA
 	case 2:
 		source = SOURCE_AVIAPLANNER
+	}
+
+	if source == SOURCE_AVIAPLANNER {
+		// need to get token & pid
+		fmt.Println("Due to limiations with AviaPlanner, certain information is needed to retrieve charts from the platform. This includes two cookies called the token and pid which help AviaPlanner authenticate you and verify your subscription status. These cookies should NOT be shared publicly as they could allow someone to use your account to make requests to the AviaPlanner platform. This software only uses these cookies to make requests and does not store them, this can be verified by looking throught the source code. If you do not know how to obtain these cookies, please refer to this guide: https://github.com/XavierC713/chart-downloader/blob/master/aviaplanner_cookie_guide.md")
+		aviaToken = prompt("Token: ")
+		aviaPid = prompt("PID: ")
 	}
 
 	path = prompt("Where should charts be downloaded? ")
