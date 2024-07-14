@@ -37,7 +37,7 @@ func main() {
 	case SOURCE_AVIAPLANNER:
 		charts := getLIDO(icao)
 		for name, id := range charts {
-			name = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(name, "<b>", ""), "</b>", ""), "/", "&")
+			name = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(name, "<b>", ""), "</b>", ""), "/", "and")
 			fmt.Printf("\nDownloading %s\n", name)
 			url := fmt.Sprintf("https://web.aviaplanner.com/ajax/?type=view-charts&cid=%s", id)
 			downloadChart(url, fmt.Sprintf("%s - %s.png", icao, name))
