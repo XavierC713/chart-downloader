@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 )
 
@@ -69,7 +70,7 @@ func getLIDO(icao string) map[string]string {
 		Path:  "/",
 	})
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Add("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0")
+	req.Header.Add("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0") // impersonate firefox because aviaplanner will send a 403 otherwise
 	req.Header.Add("Priority", "u=0")
 
 	client := &http.Client{}
@@ -84,6 +85,13 @@ func getLIDO(icao string) map[string]string {
 	if err := json.Unmarshal(body, &result); err != nil {
 		panic(err)
 	}
-	// TODO: scrape the html response and return the chart names mapped to image urls
-	return map[string]string{}
+	regex := *regexp.MustCompile(`<div class="procedureLine"> <div class="dataProcedure wa"><div class="wp100"><span class="info">.*?</span><span class="charts">(.*?)</span></div></div> <div class="operationButtons wa"> <a href="javascript:Planner\.showChart\((\d*?)\)" class="iBut" title="View Lido chart"><i class="apb chart"></i></a> </div> </div>`)
+	matches := regex.FindAllStringSubmatch(result.HTML, -1)
+	charts := map[string]string{}
+	for _, match := range matches {
+		chartName := match[1]
+		chartId := match[2]
+		charts[chartName] = chartId
+	}
+	return charts
 }

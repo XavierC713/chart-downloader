@@ -26,7 +26,7 @@ func main() {
 	reader = bufio.NewReader(os.Stdin)
 	userConfig()
 
-	icao := prompt("Enter airport ICAO code: ")
+	icao := strings.ToUpper(prompt("Enter airport ICAO code: "))
 	switch source {
 	case SOURCE_FAA:
 		charts := getFAA(icao)
@@ -35,7 +35,13 @@ func main() {
 			downloadChart(chart.PdfPath, fmt.Sprintf("%s - %s.pdf", chart.IcaoIdent, chart.ChartName))
 		}
 	case SOURCE_AVIAPLANNER:
-		getLIDO(icao)
+		charts := getLIDO(icao)
+		for name, id := range charts {
+			name = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(name, "<b>", ""), "</b>", ""), "/", "&")
+			fmt.Printf("\nDownloading %s\n", name)
+			url := fmt.Sprintf("https://web.aviaplanner.com/ajax/?type=view-charts&cid=%s", id)
+			downloadChart(url, fmt.Sprintf("%s - %s.png", icao, name))
+		}
 	}
 }
 
@@ -43,7 +49,7 @@ func main() {
 func userConfig() {
 	chartSource := promptWithOptions("Which source should be used for charts?", []string{
 		"FAA",
-		"AviaPlanner",
+		"AviaPlanner (requires subscription)",
 	})
 	switch chartSource {
 	case 1:
@@ -66,14 +72,33 @@ func userConfig() {
 }
 
 func downloadChart(url string, fileName string) {
-	out, err := os.Create(fmt.Sprintf("%s/%s", path, fileName))
+	out, err := os.Create(fmt.Sprintf("%s%s%s", path, string(os.PathSeparator), fileName))
 	if err != nil {
 		fmt.Println(err)
 		panic("Could not create file in provided path, aborting...")
 	}
 	defer out.Close()
 
-	resp, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		panic(err)
+	}
+	if source == SOURCE_AVIAPLANNER {
+		req.AddCookie(&http.Cookie{
+			Name:  "token",
+			Value: aviaToken,
+			Path:  "/",
+		})
+		req.AddCookie(&http.Cookie{
+			Name:  "pid",
+			Value: aviaPid,
+			Path:  "/",
+		})
+		req.Header.Add("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0") // impersonate firefox because aviaplanner will send a 403 otherwise
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Printf("\nFailed to fetch %s", url)
 		return
