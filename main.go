@@ -60,9 +60,23 @@ func userConfig() {
 
 	if source == SOURCE_AVIAPLANNER {
 		// need to get token & pid
-		fmt.Println("Due to limiations with AviaPlanner, certain information is needed to retrieve charts from the platform. This includes two cookies called the token and pid which help AviaPlanner authenticate you and verify your subscription status. These cookies should NOT be shared publicly as they could allow someone to use your account to make requests to the AviaPlanner platform. This software only uses these cookies to make requests and does not store them, this can be verified by looking throught the source code. If you do not know how to obtain these cookies, please refer to this guide: https://github.com/XavierC713/chart-downloader/blob/master/aviaplanner_cookie_guide.md")
-		aviaToken = prompt("Token: ")
-		aviaPid = prompt("PID: ")
+		file, err := os.ReadFile("avia_cookies.txt")
+
+		if err != nil {
+			fmt.Println("Due to limiations with AviaPlanner, certain information is needed to retrieve charts from the platform. This includes two cookies called the token and pid which help AviaPlanner authenticate you and verify your subscription status. These cookies should NOT be shared publicly as they could allow someone to use your account to make requests to the AviaPlanner platform. This software only uses these cookies to make requests and does not store them, this can be verified by looking throught the source code. If you do not know how to obtain these cookies, please refer to this guide: https://github.com/XavierC713/chart-downloader/blob/master/aviaplanner_cookie_guide.md")
+			aviaToken = prompt("Token: ")
+			aviaPid = prompt("PID: ")
+			if promptConfirmation("Would you like to save these selections? ") {
+				os.WriteFile("avia_cookies.txt", []byte(
+					fmt.Sprintf("%s\n%s", aviaToken, aviaPid),
+				), os.ModePerm)
+			}
+		} else {
+			cookies := strings.Split(string(file), "\n")
+			aviaToken = cookies[0]
+			aviaPid = cookies[1]
+			fmt.Println("Automatically read saved AviaPlanner cookies from avia_cookies.txt")
+		}
 	}
 
 	path = prompt("Where should charts be downloaded? ")

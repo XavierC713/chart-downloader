@@ -30,3 +30,15 @@ func promptWithOptions(question string, options []string) int {
 	fmt.Println("\nInvalid selection")
 	return promptWithOptions(question, options)
 }
+
+func promptConfirmation(question string) bool {
+	response := strings.ToLower(prompt(fmt.Sprintf("\n%s[Y/n]: ", question)))
+	if response == "" {
+		return true
+	}
+	if response != "y" && response != "n" {
+		fmt.Println("Invalid response")
+		return promptConfirmation(question)
+	}
+	return response == "y"
+}
