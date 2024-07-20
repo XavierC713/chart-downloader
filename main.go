@@ -32,12 +32,12 @@ func main() {
 		charts := getFAA(icao)
 		for _, chart := range charts {
 			fmt.Printf("\nDownloading %s\n", chart.ChartName)
-			downloadChart(chart.PdfPath, fmt.Sprintf("%s - %s.pdf", chart.IcaoIdent, chart.ChartName))
+			downloadChart(chart.PdfPath, fmt.Sprintf("%s - %s.pdf", chart.IcaoIdent, sanitizePath(chart.ChartName)))
 		}
 	case SOURCE_AVIAPLANNER:
 		charts := getLIDO(icao)
 		for name, id := range charts {
-			name = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(name, "<b>", ""), "</b>", ""), "/", "and")
+			name = sanitizePath(name)
 			fmt.Printf("\nDownloading %s\n", name)
 			url := fmt.Sprintf("https://web.aviaplanner.com/ajax/?type=view-charts&cid=%s", id)
 			downloadChart(url, fmt.Sprintf("%s - %s.png", icao, name))
